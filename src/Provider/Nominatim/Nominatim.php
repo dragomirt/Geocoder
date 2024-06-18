@@ -16,15 +16,16 @@ use Geocoder\Collection;
 use Geocoder\Exception\InvalidArgument;
 use Geocoder\Exception\InvalidServerResponse;
 use Geocoder\Exception\UnsupportedOperation;
+use Geocoder\Http\Provider\AbstractHttpProvider;
 use Geocoder\Location;
 use Geocoder\Model\AddressBuilder;
 use Geocoder\Model\AddressCollection;
+use Geocoder\Provider\Nominatim\Model\NominatimAddress;
+use Geocoder\Provider\Provider;
 use Geocoder\Query\GeocodeQuery;
 use Geocoder\Query\ReverseQuery;
-use Geocoder\Http\Provider\AbstractHttpProvider;
-use Geocoder\Provider\Provider;
-use Geocoder\Provider\Nominatim\Model\NominatimAddress;
-use Http\Client\HttpClient;
+use Psr\Http\Client\ClientInterface;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * @author Niklas Närhinen <niklas@narhinen.net>
@@ -48,24 +49,22 @@ final class Nominatim extends AbstractHttpProvider implements Provider
     private $referer;
 
     /**
-     * @param HttpClient $client    an HTTP client
-     * @param string     $userAgent Value of the User-Agent header
-     * @param string     $referer   Value of the Referer header
-     *
-     * @return Nominatim
+     * @param ClientInterface $client    an HTTP client
+     * @param string          $userAgent Value of the User-Agent header
+     * @param string          $referer   Value of the Referer header
      */
-    public static function withOpenStreetMapServer(HttpClient $client, string $userAgent, string $referer = ''): self
+    public static function withOpenStreetMapServer(ClientInterface $client, string $userAgent, string $referer = ''): self
     {
         return new self($client, 'https://nominatim.openstreetmap.org', $userAgent, $referer);
     }
 
     /**
-     * @param HttpClient $client    an HTTP client
-     * @param string     $rootUrl   Root URL of the nominatim server
-     * @param string     $userAgent Value of the User-Agent header
-     * @param string     $referer   Value of the Referer header
+     * @param ClientInterface $client    an HTTP client
+     * @param string          $rootUrl   Root URL of the nominatim server
+     * @param string          $userAgent Value of the User-Agent header
+     * @param string          $referer   Value of the Referer header
      */
-    public function __construct(HttpClient $client, $rootUrl, string $userAgent, string $referer = '')
+    public function __construct(ClientInterface $client, $rootUrl, string $userAgent, string $referer = '')
     {
         parent::__construct($client);
 
@@ -78,9 +77,6 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function geocodeQuery(GeocodeQuery $query): Collection
     {
         $address = $query->getText();
@@ -96,8 +92,9 @@ final class Nominatim extends AbstractHttpProvider implements Provider
                 'format' => 'jsonv2',
                 'q' => $address,
                 'addressdetails' => 1,
+                'extratags' => 1,
                 'limit' => $query->getLimit(),
-            ]);
+            ], '', '&', PHP_QUERY_RFC3986);
 
         $countrycodes = $query->getData('countrycodes');
         if (!is_null($countrycodes)) {
@@ -106,11 +103,11 @@ final class Nominatim extends AbstractHttpProvider implements Provider
 
                 $url .= '&'.http_build_query([
                     'countrycodes' => implode(',', $countrycodes),
-                ]);
+                ], '', '&', PHP_QUERY_RFC3986);
             } else {
                 $url .= '&'.http_build_query([
                     'countrycodes' => strtolower($countrycodes),
-                ]);
+                ], '', '&', PHP_QUERY_RFC3986);
             }
         }
 
@@ -118,13 +115,13 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         if (!is_null($viewbox) && is_array($viewbox) && 4 === count($viewbox)) {
             $url .= '&'.http_build_query([
                 'viewbox' => implode(',', $viewbox),
-            ]);
+            ], '', '&', PHP_QUERY_RFC3986);
 
             $bounded = $query->getData('bounded');
             if (!is_null($bounded) && true === $bounded) {
                 $url .= '&'.http_build_query([
                     'bounded' => 1,
-                ]);
+                ], '', '&', PHP_QUERY_RFC3986);
             }
         }
 
@@ -147,9 +144,6 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         return new AddressCollection($results);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function reverseQuery(ReverseQuery $query): Collection
     {
         $coordinates = $query->getCoordinates();
@@ -164,7 +158,7 @@ final class Nominatim extends AbstractHttpProvider implements Provider
                 'lon' => $longitude,
                 'addressdetails' => 1,
                 'zoom' => $query->getData('zoom', 18),
-            ]);
+            ], '', '&', PHP_QUERY_RFC3986);
 
         $content = $this->executeQuery($url, $query->getLocale());
 
@@ -180,12 +174,6 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         return new AddressCollection([$this->jsonResultToLocation($json, true)]);
     }
 
-    /**
-     * @param \stdClass $place
-     * @param bool      $reverse
-     *
-     * @return Location
-     */
     private function jsonResultToLocation(\stdClass $place, bool $reverse): Location
     {
         $builder = new AddressBuilder($this->getName());
@@ -233,10 +221,19 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         $location = $location->withAttribution($place->licence);
         $location = $location->withDisplayName($place->display_name);
 
+        $includedAddressKeys = ['city', 'town', 'village', 'state', 'county', 'hamlet', 'postcode', 'road', 'pedestrian', 'house_number', 'suburb', 'country', 'country_code', 'quarter'];
+
+        $location = $location->withDetails(array_diff_key((array) $place->address, array_flip($includedAddressKeys)));
+
+        if (isset($place->extratags)) {
+            $location = $location->withTags((array) $place->extratags);
+        }
         if (isset($place->address->quarter)) {
             $location = $location->withQuarter($place->address->quarter);
         }
-
+        if (isset($place->address->neighbourhood)) {
+            $location = $location->withNeighbourhood($place->address->neighbourhood);
+        }
         if (isset($place->osm_id)) {
             $location = $location->withOSMId(intval($place->osm_id));
         }
@@ -252,32 +249,25 @@ final class Nominatim extends AbstractHttpProvider implements Provider
         return $location;
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string
     {
         return 'nominatim';
     }
 
-    /**
-     * @param string      $url
-     * @param string|null $locale
-     *
-     * @return string
-     */
-    private function executeQuery(string $url, string $locale = null): string
+    private function executeQuery(string $url, ?string $locale = null): string
     {
         if (null !== $locale) {
             $url .= '&'.http_build_query([
                 'accept-language' => $locale,
-            ]);
+            ], '', '&', PHP_QUERY_RFC3986);
         }
 
         $request = $this->getRequest($url);
+        /** @var RequestInterface $request */
         $request = $request->withHeader('User-Agent', $this->userAgent);
 
         if (!empty($this->referer)) {
+            /** @var RequestInterface $request */
             $request = $request->withHeader('Referer', $this->referer);
         }
 

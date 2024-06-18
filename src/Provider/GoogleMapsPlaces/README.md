@@ -54,6 +54,17 @@ $results = $provider->geocodeQuery(
 );
 ```
 
+country matches a country name or a two letter ISO 3166-1 country code. If you only use the "region" parameter, you will not be guaranteed to have results on the region, as the documentation indicates [Region](https://developers.google.com/maps/documentation/javascript/geocoding#GeocodingRequests):
+
+> The region parameter will only influence, not fully restrict, results from the geocoder.
+
+```php
+$results = $provider->geocodeQuery(
+    GeocodeQuery::create('montpellier')
+        ->withData('components', 'country:FR');
+);
+```
+
 #### Autocomplete mode
 This mode will perform an autocomplete search based on the input text. Very useful to search for places with a partial or
 limited textual entry. Or to return location proposals while a user is typing.
@@ -72,7 +83,7 @@ This query returns a list of French cities that contain 'Par' in their name (we 
 To know all optional parameters you can set, see [Google Place Autocomplete documentation](https://developers.google.com/maps/documentation/places/web-service/autocomplete).
 
 We recommended to set `sessiontoken` parameters ([see doc](https://developers.google.com/maps/documentation/places/web-service/autocomplete#session_tokens)),
-If you need to retrieve the details of the autocompleted location.  
+If you need to retrieve the details of the autocompleted location.
 
 This request return a list of `GooglePlaceAutocomplete` objects, corresponding to the Google Place API response. See this class
 or [Google Place API documentation](https://developers.google.com/maps/documentation/places/web-service/autocomplete#place_autocomplete_responses) for the returned values.

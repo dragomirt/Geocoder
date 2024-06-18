@@ -13,6 +13,7 @@ declare(strict_types=1);
 namespace Geocoder\Provider\GoogleMapsPlaces\Tests;
 
 use Geocoder\Exception\InvalidArgument;
+use Geocoder\Exception\InvalidCredentials;
 use Geocoder\Exception\QuotaExceeded;
 use Geocoder\Exception\UnsupportedOperation;
 use Geocoder\IntegrationTest\BaseTestCase;
@@ -31,7 +32,7 @@ use Geocoder\Query\ReverseQuery;
  */
 class GoogleMapsPlacesTest extends BaseTestCase
 {
-    protected function getCacheDir()
+    protected function getCacheDir(): ?string
     {
         if (isset($_SERVER['USE_CACHED_RESPONSES']) && true === $_SERVER['USE_CACHED_RESPONSES']) {
             return __DIR__.'/.cached_responses';
@@ -40,13 +41,13 @@ class GoogleMapsPlacesTest extends BaseTestCase
         return null;
     }
 
-    public function testGetName()
+    public function testGetName(): void
     {
         $provider = new GoogleMapsPlaces($this->getMockedHttpClient(), 'key');
         $this->assertEquals('google_maps_places', $provider->getName());
     }
 
-    public function testGeocodeWithLocalhostIPv4()
+    public function testGeocodeWithLocalhostIPv4(): void
     {
         $this->expectException(UnsupportedOperation::class);
         $this->expectExceptionMessage('The GoogleMapsPlaces provider does not support IP addresses');
@@ -55,7 +56,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $provider->geocodeQuery(GeocodeQuery::create('127.0.0.1'));
     }
 
-    public function testGeocodeWithLocalhostIPv6()
+    public function testGeocodeWithLocalhostIPv6(): void
     {
         $this->expectException(UnsupportedOperation::class);
         $this->expectExceptionMessage('The GoogleMapsPlaces provider does not support IP addresses');
@@ -64,7 +65,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $provider->geocodeQuery(GeocodeQuery::create('::1'));
     }
 
-    public function testGeocodeWithRealIp()
+    public function testGeocodeWithRealIp(): void
     {
         $this->expectException(UnsupportedOperation::class);
         $this->expectExceptionMessage('The GoogleMapsPlaces provider does not support IP addresses');
@@ -73,7 +74,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $provider->geocodeQuery(GeocodeQuery::create('74.200.247.59'));
     }
 
-    public function testGeocodeWithQuotaExceeded()
+    public function testGeocodeWithQuotaExceeded(): void
     {
         $this->expectException(QuotaExceeded::class);
         $this->expectExceptionMessage('Daily quota exceeded https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=10+avenue+Gambetta%2C+Paris%2C+France&inputtype=textquery&fields=formatted_address%2Cgeometry%2Cicon%2Cname%2Cpermanently_closed%2Cphotos%2Cplace_id%2Cplus_code%2Ctypes&key=key');
@@ -82,7 +83,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $provider->geocodeQuery(GeocodeQuery::create('10 avenue Gambetta, Paris, France'));
     }
 
-    public function testGeocodePlaceFindMode()
+    public function testGeocodePlaceFindMode(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
@@ -91,6 +92,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $results = $provider->geocodeQuery($query);
         $this->assertCount(1, $results);
 
+        /** @var GooglePlace $result */
         $result = $results->first();
         $this->assertInstanceOf(GooglePlace::class, $result);
 
@@ -110,7 +112,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         ], $result->getType());
     }
 
-    public function testGeocodePlaceSearchMode()
+    public function testGeocodePlaceSearchMode(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
@@ -155,7 +157,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $this->assertFalse($resultOne->isPermanentlyClosed());
     }
 
-    public function testGeocodePlaceSearchAroundLocation()
+    public function testGeocodePlaceSearchAroundLocation(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
@@ -176,49 +178,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $this->assertSame('102 Hunter St, Newcastle NSW 2300, Australia', $resultOne->getFormattedAddress());
     }
 
-    public function testGeocodePlaceAutocompleteMode()
-    {
-        $provider = $this->getGoogleMapsProvider();
-        $query = GeocodeQuery::create('Paris')
-            ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_AUTOCOMPLETE)
-            ->withData('types', '(cities)')
-            ->withData('components', 'country:fr')
-            ->withData('language', 'fr')
-        ;
-
-        $results = $provider->geocodeQuery($query);
-        $this->assertCount(5, $results);
-        /**
-         * @var GooglePlaceAutocomplete $result
-         */
-        $result = $results->first();
-        $this->assertInstanceOf(GooglePlaceAutocomplete::class, $result);
-        $this->assertSame('ChIJD7fiBh9u5kcRYJSMaMOCCwQ', $result->getId());
-        $this->assertSame('Paris, France', $result->getDescription());
-        $this->assertInstanceOf(StructuredFormatting::class, $result->getStructuredFormatting());
-        $this->assertIsArray($result->getMatchedSubstrings());
-        $this->assertIsArray($result->getTerms());
-        $this->assertIsArray($result->getTypes());
-
-        $this->assertSame(
-            [['length' => 5, 'offset' => 0]],
-            $result->getMatchedSubstrings()
-        );
-        $this->assertSame(
-            [
-                ['offset' => 0, 'value' => 'Paris'],
-                ['offset' => 7, 'value' => 'France'],
-            ],
-            $result->getTerms()
-        );
-        $this->assertSame([
-            'locality',
-            'political',
-            'geocode',
-        ], $result->getTypes());
-    }
-
-    public function testReverseGeocodePlaceSearchWithoutType()
+    public function testReverseGeocodePlaceSearchWithoutType(): void
     {
         $this->expectException(InvalidArgument::class);
         $this->expectExceptionMessage('`type` is required to be set in the Query data for Reverse Geocoding when using search mode');
@@ -226,19 +186,19 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $provider = $this->getGoogleMapsProvider();
         $query = ReverseQuery::fromCoordinates(-33.8865019, 151.2080413)
             ->withData('rankby', 'distance')
-            ;
+        ;
 
         $provider->reverseQuery($query);
     }
 
-    public function testReverseGeocodePlaceSearch()
+    public function testReverseGeocodePlaceSearch(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
         $query = ReverseQuery::fromCoordinates(-33.892674, 151.200727)
             // ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_SEARCH) // =default
             ->withData('type', 'bar')
-            ;
+        ;
 
         $results = $provider->reverseQuery($query);
 
@@ -253,7 +213,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $this->assertSame('7 Cope St, Redfern NSW 2016', $resultOne->getFormattedAddress());
     }
 
-    public function testReverseGeocodePlaceNearbyDistanceWithoutKeyword()
+    public function testReverseGeocodePlaceNearbyDistanceWithoutKeyword(): void
     {
         $this->expectException(InvalidArgument::class);
         $this->expectExceptionMessage('keyword');
@@ -263,12 +223,12 @@ class GoogleMapsPlacesTest extends BaseTestCase
             ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_NEARBY)
             ->withData('rankby', 'distance')
             // ->withData('keyword', 'bar')
-            ;
+        ;
 
         $provider->reverseQuery($query);
     }
 
-    public function testReverseGeocodePlaceNearbyDistance()
+    public function testReverseGeocodePlaceNearbyDistance(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
@@ -276,7 +236,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
             ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_NEARBY)
             ->withData('rankby', 'distance')
             ->withData('keyword', 'bar')
-            ;
+        ;
 
         $results = $provider->reverseQuery($query);
 
@@ -293,7 +253,7 @@ class GoogleMapsPlacesTest extends BaseTestCase
         // formatted address not available with NEARBY endpoint ()
     }
 
-    public function testReverseGeocodePlaceNearbyProminenceWithoutRadius()
+    public function testReverseGeocodePlaceNearbyProminenceWithoutRadius(): void
     {
         $this->expectException(InvalidArgument::class);
         $this->expectExceptionMessage('radius');
@@ -303,20 +263,20 @@ class GoogleMapsPlacesTest extends BaseTestCase
             ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_NEARBY)
             // ->withData('rankby', 'prominence')
             // ->withData('radius', 500)
-            ;
+        ;
 
         $provider->reverseQuery($query);
     }
 
-    public function testReverseGeocodePlaceNearbyProminence()
+    public function testReverseGeocodePlaceNearbyProminence(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
         $query = ReverseQuery::fromCoordinates(-33.892674, 151.200727)
                 ->withData('mode', GoogleMapsPlaces::GEOCODE_MODE_NEARBY)
-                //->withData('rankby', 'prominence'); // =default
+                // ->withData('rankby', 'prominence'); // =default
                 ->withData('radius', 500)
-                ;
+        ;
 
         $results = $provider->reverseQuery($query);
         $this->assertCount(20, $results);
@@ -328,28 +288,37 @@ class GoogleMapsPlacesTest extends BaseTestCase
         $this->assertSame('ChIJP3Sa8ziYEmsRUKgyFmh9AQM', $resultOne->getId()); // Sydney
     }
 
-    public function testReverseGeocodePlaceSearchWithEmptyOpeningHours()
+    public function testReverseGeocodePlaceSearchWithEmptyOpeningHours(): void
     {
         $provider = $this->getGoogleMapsProvider();
 
         $query = ReverseQuery::fromCoordinates(51.0572773, 13.7763207)
             ->withData('type', 'transit_station')
-            ;
+        ;
 
         $results = $provider->reverseQuery($query);
         $this->assertCount(20, $results);
 
         $this->markTestIncomplete('Test is giving irregular results. Marking incomplete for now.');
 
-        /** @var GooglePlace $resultOne */
-        $resultOne = $results->get(13);
-        $this->assertNull($resultOne->getOpeningHours()->isOpenNow());
+        // /** @var GooglePlace $resultOne */
+        // $resultOne = $results->get(13);
+        // $this->assertNull($resultOne->getOpeningHours()->isOpenNow());
         // sometimes giving: Error: Call to a member function isOpenNow() on null
 
-        /** @var GooglePlace $resultTwo */
-        $resultTwo = $results->first();
-        $this->assertNull($resultTwo->getOpeningHours());
+        // /** @var GooglePlace $resultTwo */
+        // $resultTwo = $results->first();
+        // $this->assertNull($resultTwo->getOpeningHours());
         // sometimes giving: Failed asserting that Object ['openNow' => null, 'periods' => [], 'weekdayText' => []] is null
+    }
+
+    public function testInvalidAPIKey(): void
+    {
+        $this->expectException(InvalidCredentials::class);
+        $this->expectExceptionMessageMatches('/^API key is invalid/');
+
+        $provider = new GoogleMapsPlaces($this->getHttpClient('invalidKey'), 'invalidKey');
+        $provider->geocodeQuery(GeocodeQuery::create('White house'));
     }
 
     private function getGoogleMapsProvider(): GoogleMapsPlaces

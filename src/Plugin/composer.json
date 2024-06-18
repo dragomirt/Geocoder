@@ -14,10 +14,10 @@
         }
     ],
     "require": {
-        "php": "^7.3 || ^8.0",
+        "php": "^8.0",
         "php-http/promise": "^1.0",
-        "psr/log": "^1.0",
-        "psr/simple-cache": "^1.0",
+        "psr/log": "^1.0|^2.0|^3.0",
+        "psr/simple-cache": "^1.0|^2.0|^3.0",
         "willdurand/geocoder": "^4.0"
     },
     "require-dev": {
@@ -42,5 +42,10 @@
     "scripts": {
         "test": "vendor/bin/phpunit",
         "test-ci": "vendor/bin/phpunit --coverage-text --coverage-clover=build/coverage.xml"
+    },
+    "config": {
+        "allow-plugins": {
+            "php-http/discovery": false
+        }
     }
 }

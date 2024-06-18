@@ -32,61 +32,43 @@ final class AddressCollection implements Collection
         $this->locations = array_values($locations);
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getIterator()
+    public function getIterator(): \Traversable
     {
         return new \ArrayIterator($this->all());
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function count()
+    public function count(): int
     {
         return count($this->locations);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function first(): Location
     {
-        if (empty($this->locations)) {
+        if ([] === $this->locations) {
             throw new CollectionIsEmpty();
         }
 
         return reset($this->locations);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function isEmpty(): bool
     {
-        return empty($this->locations);
+        return [] === $this->locations;
     }
 
     /**
      * @return Location[]
      */
-    public function slice(int $offset, int $length = null)
+    public function slice(int $offset, ?int $length = null)
     {
         return array_slice($this->locations, $offset, $length);
     }
 
-    /**
-     * @return bool
-     */
     public function has(int $index): bool
     {
         return isset($this->locations[$index]);
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function get(int $index): Location
     {
         if (!isset($this->locations[$index])) {
@@ -96,9 +78,6 @@ final class AddressCollection implements Collection
         return $this->locations[$index];
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function all(): array
     {
         return $this->locations;

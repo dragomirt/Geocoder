@@ -31,7 +31,7 @@ use Geocoder\Provider\Provider;
 use Geocoder\Query\GeocodeQuery;
 use Geocoder\Query\Query;
 use Geocoder\Query\ReverseQuery;
-use Http\Client\HttpClient;
+use Psr\Http\Client\ClientInterface;
 use stdClass;
 
 /**
@@ -42,17 +42,17 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * @var string
      */
-    const SEARCH_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
+    public const SEARCH_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/textsearch/json';
 
     /**
      * @var string
      */
-    const FIND_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
+    public const FIND_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/findplacefromtext/json';
 
     /**
      * @var string
      */
-    const NEARBY_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
+    public const NEARBY_ENDPOINT_URL_SSL = 'https://maps.googleapis.com/maps/api/place/nearbysearch/json';
 
     /**
      * @var string
@@ -62,17 +62,17 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * @var string
      */
-    const GEOCODE_MODE_FIND = 'find';
+    public const GEOCODE_MODE_FIND = 'find';
 
     /**
      * @var string
      */
-    const GEOCODE_MODE_SEARCH = 'search';
+    public const GEOCODE_MODE_SEARCH = 'search';
 
     /**
      * @var string
      */
-    const GEOCODE_MODE_NEARBY = 'nearby';
+    public const GEOCODE_MODE_NEARBY = 'nearby';
 
     /**
      * @var string
@@ -82,7 +82,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * @var string
      */
-    const DEFAULT_GEOCODE_MODE = self::GEOCODE_MODE_FIND;
+    public const DEFAULT_GEOCODE_MODE = self::GEOCODE_MODE_FIND;
 
     /**
      * @var string
@@ -91,7 +91,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
      * Use the business_status field to return the operational status of businesses.
      * @see: https://developers.google.com/maps/documentation/places/web-service/search
      */
-    const DEFAULT_FIELDS = 'formatted_address,geometry,icon,name,permanently_closed,photos,place_id,plus_code,types';
+    public const DEFAULT_FIELDS = 'formatted_address,geometry,icon,name,permanently_closed,photos,place_id,plus_code,types';
 
     /**
      * @var string|null
@@ -99,10 +99,10 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     private $apiKey;
 
     /**
-     * @param HttpClient $client An HTTP adapter
-     * @param string     $apiKey Google Maps Places API Key
+     * @param ClientInterface $client An HTTP adapter
+     * @param string          $apiKey Google Maps Places API Key
      */
-    public function __construct(HttpClient $client, string $apiKey)
+    public function __construct(ClientInterface $client, string $apiKey)
     {
         parent::__construct($client);
 
@@ -110,10 +110,6 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     }
 
     /**
-     * @param GeocodeQuery $query
-     *
-     * @return Collection
-     *
      * @throws UnsupportedOperation
      * @throws InvalidArgument
      */
@@ -139,10 +135,6 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     }
 
     /**
-     * @param ReverseQuery $query
-     *
-     * @return Collection
-     *
      * @throws InvalidArgument
      */
     public function reverseQuery(ReverseQuery $query): Collection
@@ -157,9 +149,6 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
         return $this->fetchUrl($url, $this->buildNearbySearchQuery($query));
     }
 
-    /**
-     * {@inheritdoc}
-     */
     public function getName(): string
     {
         return 'google_maps_places';
@@ -168,9 +157,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * Build query for the find place API.
      *
-     * @param GeocodeQuery $geocodeQuery
-     *
-     * @return array
+     * @return array<string, mixed>
      */
     private function buildFindPlaceQuery(GeocodeQuery $geocodeQuery): array
     {
@@ -205,9 +192,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * Build query for the place search API.
      *
-     * @param GeocodeQuery $geocodeQuery
-     *
-     * @return array
+     * @return array<string, mixed>
      */
     private function buildPlaceSearchQuery(GeocodeQuery $geocodeQuery): array
     {
@@ -238,9 +223,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * Build query for the nearby search api.
      *
-     * @param ReverseQuery $reverseQuery
-     *
-     * @return array
+     * @return array<string, mixed>
      */
     private function buildNearbySearchQuery(ReverseQuery $reverseQuery): array
     {
@@ -344,11 +327,10 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     }
 
     /**
-     * @param Query $query
-     * @param array $request
-     * @param array $keys
+     * @param array<string, mixed> $request
+     * @param string[]             $keys
      *
-     * @return array
+     * @return array<string, mixed>
      */
     private function applyDataFromQuery(Query $query, array $request, array $keys)
     {
@@ -364,10 +346,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     }
 
     /**
-     * @param string $url
-     * @param array  $query
-     *
-     * @return AddressCollection
+     * @param array<string, mixed> $query
      */
     private function fetchUrl(string $url, array $query): AddressCollection
     {
@@ -489,7 +468,6 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
     /**
      * Decode the response content and validate it to make sure it does not have any errors.
      *
-     * @param string $url
      * @param string $content
      *
      * @return StdClass
@@ -511,12 +489,12 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
             throw new InvalidArgument(sprintf('Invalid Request %s', $url));
         }
 
-        if ('REQUEST_DENIED' === $json->status && 'The provided API key is invalid.' === $json->error_messages) {
+        if ('REQUEST_DENIED' === $json->status && 'The provided API key is invalid.' === $json->error_message) {
             throw new InvalidCredentials(sprintf('API key is invalid %s', $url));
         }
 
         if ('REQUEST_DENIED' === $json->status) {
-            throw new InvalidServerResponse(sprintf('API access denied. Request: %s - Message: %s', $url, $json->error_messages));
+            throw new InvalidServerResponse(sprintf('API access denied. Request: %s - Message: %s', $url, $json->error_message));
         }
 
         if ('OVER_QUERY_LIMIT' === $json->status) {
@@ -528,9 +506,6 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
 
     /**
      * Parse coordinates and bounds.
-     *
-     * @param AddressBuilder $builder
-     * @param StdClass       $result
      */
     private function parseCoordinates(AddressBuilder $builder, StdClass $result)
     {
@@ -542,7 +517,7 @@ final class GoogleMapsPlaces extends AbstractHttpProvider implements Provider
                 $result->geometry->viewport->southwest->lat,
                 $result->geometry->viewport->southwest->lng,
                 $result->geometry->viewport->northeast->lat,
-                $result->geometry->viewport->northeast->lng,
+                $result->geometry->viewport->northeast->lng
             );
         }
     }

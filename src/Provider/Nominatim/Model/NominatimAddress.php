@@ -55,6 +55,21 @@ final class NominatimAddress extends Address
     private $type;
 
     /**
+     * @var array<string, mixed>|null
+     */
+    private $details;
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    private $tags;
+
+    /**
+     * @var string|null
+     */
+    private $neighbourhood;
+
+    /**
      * @return string|null
      */
     public function getAttribution()
@@ -62,12 +77,7 @@ final class NominatimAddress extends Address
         return $this->attribution;
     }
 
-    /**
-     * @param string|null $attribution
-     *
-     * @return NominatimAddress
-     */
-    public function withAttribution(string $attribution = null): self
+    public function withAttribution(?string $attribution = null): self
     {
         $new = clone $this;
         $new->attribution = $attribution;
@@ -87,12 +97,8 @@ final class NominatimAddress extends Address
 
     /**
      * @deprecated
-     *
-     * @param string|null $category
-     *
-     * @return NominatimAddress
      */
-    public function withClass(string $category = null): self
+    public function withClass(?string $category = null): self
     {
         return $this->withCategory($category);
     }
@@ -105,12 +111,7 @@ final class NominatimAddress extends Address
         return $this->category;
     }
 
-    /**
-     * @param string|null $category
-     *
-     * @return NominatimAddress
-     */
-    public function withCategory(string $category = null): self
+    public function withCategory(?string $category = null): self
     {
         $new = clone $this;
         $new->category = $category;
@@ -126,12 +127,7 @@ final class NominatimAddress extends Address
         return $this->displayName;
     }
 
-    /**
-     * @param string|null $displayName
-     *
-     * @return NominatimAddress
-     */
-    public function withDisplayName(string $displayName = null): self
+    public function withDisplayName(?string $displayName = null): self
     {
         $new = clone $this;
         $new->displayName = $displayName;
@@ -147,12 +143,7 @@ final class NominatimAddress extends Address
         return $this->osmId;
     }
 
-    /**
-     * @param int|null $osmId
-     *
-     * @return NominatimAddress
-     */
-    public function withOSMId(int $osmId = null): self
+    public function withOSMId(?int $osmId = null): self
     {
         $new = clone $this;
         $new->osmId = $osmId;
@@ -168,12 +159,7 @@ final class NominatimAddress extends Address
         return $this->osmType;
     }
 
-    /**
-     * @param string|null $osmType
-     *
-     * @return NominatimAddress
-     */
-    public function withOSMType(string $osmType = null): self
+    public function withOSMType(?string $osmType = null): self
     {
         $new = clone $this;
         $new->osmType = $osmType;
@@ -189,12 +175,7 @@ final class NominatimAddress extends Address
         return $this->type;
     }
 
-    /**
-     * @param string|null $type
-     *
-     * @return NominatimAddress
-     */
-    public function withType(string $type = null): self
+    public function withType(?string $type = null): self
     {
         $new = clone $this;
         $new->type = $type;
@@ -202,23 +183,69 @@ final class NominatimAddress extends Address
         return $new;
     }
 
-    /**
-     * @return string|null
-     */
     public function getQuarter(): ?string
     {
         return $this->quarter;
     }
 
-    /**
-     * @param string|null $quarter
-     *
-     * @return NominatimAddress
-     */
-    public function withQuarter(string $quarter = null): self
+    public function withQuarter(?string $quarter = null): self
     {
         $new = clone $this;
         $new->quarter = $quarter;
+
+        return $new;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getDetails(): ?array
+    {
+        return $this->details;
+    }
+
+    /**
+     * @param array<string, mixed>|null $details
+     */
+    public function withDetails(?array $details = null): self
+    {
+        $new = clone $this;
+        $new->details = $details;
+
+        return $new;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getTags(): ?array
+    {
+        return $this->tags;
+    }
+
+    /**
+     * @param array<string, mixed>|null $tags
+     */
+    public function withTags(?array $tags = null): self
+    {
+        $new = clone $this;
+        $new->tags = $tags;
+
+        return $new;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getNeighbourhood()
+    {
+        return $this->neighbourhood;
+    }
+
+    public function withNeighbourhood(?string $neighbourhood = null): self
+    {
+        $new = clone $this;
+        $new->neighbourhood = $neighbourhood;
 
         return $new;
     }

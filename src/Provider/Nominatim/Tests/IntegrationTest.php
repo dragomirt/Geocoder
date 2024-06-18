@@ -12,33 +12,37 @@ namespace Geocoder\Provider\Nominatim\Tests;
 
 use Geocoder\IntegrationTest\ProviderIntegrationTest;
 use Geocoder\Provider\Nominatim\Nominatim;
-use Http\Client\HttpClient;
+use Psr\Http\Client\ClientInterface;
 
 /**
  * @author Tobias Nyholm <tobias.nyholm@gmail.com>
  */
 class IntegrationTest extends ProviderIntegrationTest
 {
-    protected $testAddress = true;
+    protected array $skippedTests = [
+        'testReverseQueryWithNoResults' => 'There is "Soul Buoy"',
+    ];
 
-    protected $testReverse = true;
+    protected bool $testAddress = true;
 
-    protected $testIpv4 = false;
+    protected bool $testReverse = true;
 
-    protected $testIpv6 = false;
+    protected bool $testIpv4 = false;
 
-    protected function createProvider(HttpClient $httpClient)
+    protected bool $testIpv6 = false;
+
+    protected function createProvider(ClientInterface $httpClient)
     {
         return Nominatim::withOpenStreetMapServer($httpClient, 'Geocoder PHP/Nominatim Provider/Integration Test');
     }
 
-    protected function getCacheDir()
+    protected function getCacheDir(): string
     {
         return __DIR__.'/.cached_responses';
     }
 
-    protected function getApiKey()
+    protected function getApiKey(): string
     {
-        return null;
+        return '';
     }
 }
